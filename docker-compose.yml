@@ -17,7 +17,7 @@ services:
         devices:
             - /dev/net/tun
         volumes:
-            - /opt/appdata/openvpn:/config
+            - /opt/config/openvpn:/config
             - /etc/localtime:/etc/localtime:ro
 
 
@@ -31,7 +31,7 @@ services:
             - PGID=1002
         volumes:
             - /downloads:/downloads
-            - /opt/appdata/nzbget:/config
+            - /opt/config/nzbget:/config
             - /mnt/storage:/storage
             - /etc/localtime:/etc/localtime:ro
         network_mode: "service:vpn"
@@ -47,6 +47,7 @@ services:
             - PGID=1002
         volumes:
             - /etc/localtime:/etc/localtime:ro
+            - /opt/config/sonarr/config.xml:/config/config.xml
             - /opt/appdata/sonarr:/config
             - /mnt/storage:/storage
             - /downloads:/downloads
@@ -63,6 +64,7 @@ services:
             - PGID=1002
         volumes:
             - /etc/localtime:/etc/localtime:ro
+            - /opt/config/radarr/config.xml:/config/config.xml
             - /opt/appdata/radarr:/config
             - /mnt/storage:/storage
             - /downloads:/downloads
@@ -76,36 +78,21 @@ services:
 #                                                                          #
 ############################################################################
     proxy:
-        image: linuxserver/nginx
+        image: nginx
         restart: always
         links:
             - vpn:nzbget
             - vpn:sonarr
             - vpn:radarr
-            - organizr:org_cont
             - plex:plex_cont
         ports:
             - 80:80
-            #- 443:443
-        environment:
-            - PUID=5005
-            - PGID=1002
+            - 443:443
         volumes:
-            - /opt/appdata/nginx:/config/nginx/site-confs:ro
+            - /opt/config/nginx/nginx.conf:/etc/nginx/nginx.conf
+            - /opt/config/nginx/conf.d:/etc/nginx/conf.d
+            - /home/morpheus/dev/docker_images/letsencrypt/archive/frankw.us/:/certs
             - /etc/localtime:/etc/localtime:ro
-
-
-############################################################################
-############################################################################
-    organizr:
-        image: lsiocommunity/organizr
-        restart: always
-        volumes:
-            - /etc/localtime:/etc/localtime:ro
-            - /opt/appdata/organizr:/config
-        environment:
-            - PUID=5005
-            - PGID-1002
 
 
     plex:
@@ -114,11 +101,13 @@ services:
         hostname: nemesis        
         volumes:
             - /etc/localtime:/etc/localtime:ro
+            - /opt/config/plex/Preferences.xml:/config/Library/Application Support/Plex Media Server/Preferences.xml
             - /opt/appdata/plex:/config
             - /mnt/storage:/data
         environment:
             - PUID=5005
-            - PGID=1002
+            - PGID=1002  
+            - VERSION=latest
         ports:
             - 32400:32400
 
@@ -133,6 +122,7 @@ services:
         image: linuxserver/plexpy
         restart: always
         volumes:
+            - /opt/config/plexpy/config.ini:/config/config.ini
             - /opt/appdata/plexpy:/config
             - /etc/localtime:/etc/localtime:ro
             - /opt/appdata/plex/Library/Application Support/Plex Media Server/Logs:/logs:ro
@@ -157,20 +147,4 @@ services:
         environment:
             - PUID=5005
             - PGID=1002
-
-
-
-############################################################################
-# The Watchtower service will keep all of the specified containers up to 
-# date.
-#
-#
-############################################################################
-    watchtower:
-        #image: v2tec/watchtower
-        image: centurylink/watchtower
-        #restart: always      
-        volumes:
-           - /var/run/docker.sock:/var/run/docker.sock
-           - /etc/localtime:/etc/localtime:ro
 
