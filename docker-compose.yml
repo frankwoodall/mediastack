@@ -1,0 +1,176 @@
+version: "2.1"
+services:
+
+############################################################################
+# This container provides the network stack for all the sensitive          #
+# containers.                                                              #
+#                                                                          #
+#                                                                          #
+############################################################################
+    vpn:
+        image: frankwoodall/openvpn
+        cap_add:
+            - NET_ADMIN
+        dns: 
+            - 8.8.8.8
+        restart: always
+        devices:
+            - /dev/net/tun
+        volumes:
+            - /opt/appdata/openvpn:/config
+            - /etc/localtime:/etc/localtime:ro
+
+
+    nzbget:
+        image: linuxserver/nzbget
+        restart: always
+        depends_on:
+            - vpn
+        environment:
+            - PUID=5005
+            - PGID=1002
+        volumes:
+            - /downloads:/downloads
+            - /opt/appdata/nzbget:/config
+            - /mnt/storage:/storage
+            - /etc/localtime:/etc/localtime:ro
+        network_mode: "service:vpn"
+
+
+    sonarr:
+        image: linuxserver/sonarr
+        restart: always
+        depends_on:
+            - vpn
+        environment:
+            - PUID=5005
+            - PGID=1002
+        volumes:
+            - /etc/localtime:/etc/localtime:ro
+            - /opt/appdata/sonarr:/config
+            - /mnt/storage:/storage
+            - /downloads:/downloads
+        network_mode: "service:vpn"
+
+
+    radarr:
+        image: linuxserver/radarr
+        restart: always
+        depends_on:
+            - vpn
+        environment:
+            - PUID=5005
+            - PGID=1002
+        volumes:
+            - /etc/localtime:/etc/localtime:ro
+            - /opt/appdata/radarr:/config
+            - /mnt/storage:/storage
+            - /downloads:/downloads
+        network_mode: "service:vpn"
+
+
+############################################################################
+# This is an nginx reverse proxy which allows local management of the      #
+# containers on the vpn network.                                           #
+#                                                                          #
+#                                                                          #
+############################################################################
+    proxy:
+        image: linuxserver/nginx
+        restart: always
+        links:
+            - vpn:nzbget
+            - vpn:sonarr
+            - vpn:radarr
+            - organizr:org_cont
+            - plex:plex_cont
+        ports:
+            - 80:80
+            #- 443:443
+        environment:
+            - PUID=5005
+            - PGID=1002
+        volumes:
+            - /opt/appdata/nginx:/config/nginx/site-confs:ro
+            - /etc/localtime:/etc/localtime:ro
+
+
+############################################################################
+############################################################################
+    organizr:
+        image: lsiocommunity/organizr
+        restart: always
+        volumes:
+            - /etc/localtime:/etc/localtime:ro
+            - /opt/appdata/organizr:/config
+        environment:
+            - PUID=5005
+            - PGID-1002
+
+
+    plex:
+        image: linuxserver/plex
+        restart: always
+        hostname: nemesis        
+        volumes:
+            - /etc/localtime:/etc/localtime:ro
+            - /opt/appdata/plex:/config
+            - /mnt/storage:/data
+        environment:
+            - PUID=5005
+            - PGID=1002
+        ports:
+            - 32400:32400
+
+
+############################################################################
+# Interesting stats and analytics on plex usage.
+#
+#
+#
+############################################################################
+    plexpy:
+        image: linuxserver/plexpy
+        restart: always
+        volumes:
+            - /opt/appdata/plexpy:/config
+            - /etc/localtime:/etc/localtime:ro
+            - /opt/appdata/plex/Library/Application Support/Plex Media Server/Logs:/logs:ro
+        environment:
+            - PUID=5005
+            - PGID=1002
+
+
+############################################################################
+# Allow plex users to make content requests.
+#
+#
+#
+############################################################################
+    ombi:
+        image: linuxserver/ombi
+        restart: always
+        volumes:
+            - /etc/localtime:/etc/localtime:ro
+            - /opt/appdata/ombi:/config
+            - /mnt/storage:/storage
+        environment:
+            - PUID=5005
+            - PGID=1002
+
+
+
+############################################################################
+# The Watchtower service will keep all of the specified containers up to 
+# date.
+#
+#
+############################################################################
+    watchtower:
+        #image: v2tec/watchtower
+        image: centurylink/watchtower
+        #restart: always      
+        volumes:
+           - /var/run/docker.sock:/var/run/docker.sock
+           - /etc/localtime:/etc/localtime:ro
+
