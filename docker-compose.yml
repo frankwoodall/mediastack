@@ -11,8 +11,6 @@ services:
         image: frankwoodall/openvpn
         cap_add:
             - NET_ADMIN
-        dns: 
-            - 8.8.8.8
         restart: always
         devices:
             - /dev/net/tun
@@ -78,6 +76,7 @@ services:
 #                                                                          #
 ############################################################################
     proxy:
+        #image: frankwoodall/blog_nginx
         image: nginx
         restart: always
         links:
@@ -91,7 +90,7 @@ services:
         volumes:
             - /opt/config/nginx/nginx.conf:/etc/nginx/nginx.conf
             - /opt/config/nginx/conf.d:/etc/nginx/conf.d
-            - /home/morpheus/dev/docker_images/letsencrypt/archive/frankw.us/:/certs
+            - /opt/certs/nginx:/certs
             - /etc/localtime:/etc/localtime:ro
 
 
@@ -101,7 +100,6 @@ services:
         hostname: nemesis        
         volumes:
             - /etc/localtime:/etc/localtime:ro
-            - /opt/config/plex/Preferences.xml:/config/Library/Application Support/Plex Media Server/Preferences.xml
             - /opt/appdata/plex:/config
             - /mnt/storage:/data
         environment:
@@ -110,6 +108,7 @@ services:
             - VERSION=latest
         ports:
             - 32400:32400
+        network_mode: host
 
 
 ############################################################################
@@ -126,6 +125,7 @@ services:
             - /opt/appdata/plexpy:/config
             - /etc/localtime:/etc/localtime:ro
             - /opt/appdata/plex/Library/Application Support/Plex Media Server/Logs:/logs:ro
+            - /opt/certs/nginx/ho.me:/certs
         environment:
             - PUID=5005
             - PGID=1002
@@ -137,14 +137,14 @@ services:
 #
 #
 ############################################################################
-    ombi:
-        image: linuxserver/ombi
-        restart: always
-        volumes:
-            - /etc/localtime:/etc/localtime:ro
-            - /opt/appdata/ombi:/config
-            - /mnt/storage:/storage
-        environment:
-            - PUID=5005
-            - PGID=1002
+#    ombi:
+#        image: linuxserver/ombi
+#        restart: always
+#        volumes:
+#            - /etc/localtime:/etc/localtime:ro
+#            - /opt/appdata/ombi:/config
+#            - /mnt/storage:/storage
+#        environment:
+#            - PUID=5005
+#            - PGID=1002
 
